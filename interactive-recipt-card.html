@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Interactive Recipe Card — Chocolate Cake</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --accent:#e76f51;
+      --accent-2:#2a9d8f;
+      --muted:#6b7280;
+      --radius:14px;
+      --shadow: 0 6px 20px rgba(20,20,40,0.08);
+      --glass: rgba(255,255,255,0.6);
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+
+    /* Page layout */
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background: linear-gradient(180deg,var(--bg), #eef2f7 60%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100vh;
+      padding:32px;
+      color:#0f172a;
+    }
+
+    .card{
+      width:100%;
+      max-width:980px;
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:0;
+      transform-origin:center;
+      animation:pop .6s cubic-bezier(.2,.9,.3,1);
+    }
+
+    @keyframes pop{ from{transform:scale(.98) translateY(6px); opacity:0} to{transform:none; opacity:1} }
+
+    /* Left column: image + meta */
+    .media{
+      background:linear-gradient(135deg, rgba(42,157,143,0.06), rgba(231,111,81,0.03));
+      padding:20px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      align-items:center;
+      justify-content:flex-start;
+    }
+
+    .dish-img{
+      width:100%;
+      border-radius:12px;
+      overflow:hidden;
+      box-shadow: 0 10px 30px rgba(10,20,30,0.08);
+      border: 1px solid rgba(20,20,20,0.03);
+    }
+    .dish-img img{ display:block; width:100%; height:280px; object-fit:cover; }
+
+    .title{
+      font-size:1.45rem;
+      font-weight:700;
+      letter-spacing:-0.02em;
+      margin-top:6px;
+      text-align:center;
+    }
+
+    .meta{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      font-size:0.95rem;
+    }
+
+    .badge{ background:var(--glass); padding:8px 12px; border-radius:999px; border:1px solid rgba(0,0,0,0.03); }
+
+    /* Right column: ingredients + steps */
+    .content{
+      padding:22px 28px;
+    }
+
+    .section{
+      margin-bottom:18px;
+    }
+
+    .controls{ display:flex; gap:10px; align-items:center; }
+    button{ cursor:pointer; border:0; padding:10px 14px; border-radius:10px; font-weight:600; background:#111827; color:#fff; transition:transform .15s ease, box-shadow .15s ease; }
+    button:active{ transform:translateY(1px); }
+    .btn-outline{ background:transparent; color:var(--accent); border:1px solid rgba(231,111,81,0.18); }
+    .btn-accent{ background:var(--accent); }
+
+    /* Ingredients list */
+    .ingredients{
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:8px 18px;
+      margin-top:12px;
+    }
+
+    .ingredient{
+      padding:8px 10px;
+      border-radius:8px;
+      background:linear-gradient(180deg, rgba(250,250,250,1), rgba(245,247,250,1));
+      border:1px solid rgba(10,10,20,0.03);
+      transition:transform .12s ease, background-color .25s ease, color .25s ease;
+    }
+
+    .ingredient:hover{
+      transform:translateY(-4px) scale(1.01);
+      background: linear-gradient(90deg, rgba(42,157,143,0.06), rgba(231,111,81,0.06));
+      color:var(--accent-2);
+      text-decoration:underline;
+    }
+
+    /* Steps */
+    .steps{ margin-top:12px; display:flex; flex-direction:column; gap:10px }
+    .step{
+      padding:12px 14px;
+      border-radius:10px;
+      background:#fbfdff;
+      border:1px solid rgba(10,10,20,0.03);
+      transition:box-shadow .18s ease, transform .12s ease, background-color .18s ease;
+      display:flex; gap:12px; align-items:flex-start;
+    }
+    .step .num{ width:36px; height:36px; border-radius:8px; display:grid; place-items:center; font-weight:700; background:rgba(15,23,42,0.04); }
+    .step.active{ background:linear-gradient(90deg, rgba(42,157,143,0.08), rgba(231,111,81,0.06)); box-shadow: 0 8px 20px rgba(38,50,56,0.06); transform:translateY(-4px); }
+
+    /* progress bar */
+    .progress-wrap{ margin-top:8px }
+    .progress{
+      position:relative; height:12px; border-radius:999px; background:linear-gradient(90deg,#f1f5f9,#eef2f7); overflow:hidden; border:1px solid rgba(0,0,0,0.03);
+    }
+    .progress > i{ position:absolute; left:0; top:0; bottom:0; width:0%; display:block; border-radius:999px; transition:width .6s ease; background: linear-gradient(90deg,var(--accent), var(--accent-2)); }
+
+    /* small UI */
+    .small{ color:var(--muted); font-size:0.92rem }
+
+    /* timer */
+    .timer{ margin-left:auto; display:flex; gap:10px; align-items:center; }
+    .timer .clock{ font-weight:700 }
+
+    /* collapse animations */
+    .collapsible{ overflow:hidden; transition:max-height .45s ease, opacity .35s ease; }
+
+    /* responsive */
+    @media (max-width:900px){
+      .card{ grid-template-columns: 1fr; }
+      .dish-img img{ height:220px }
+      .ingredients{ grid-template-columns:repeat(1,1fr) }
+    }
+
+    @media (max-width:420px){
+      body{ padding:18px }
+      .dish-img img{ height:180px }
+      .title{ font-size:1.2rem }
+    }
+
+    /* Print friendly */
+    @media print{
+      body{ background:white }
+      button, .controls, .timer{ display:none }
+      .card{ box-shadow:none; border-radius:0 }
+      img{ max-width:100% }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="card" id="recipeCard">
+    <div class="media">
+      <div class="dish-img" role="img" aria-label="Chocolate Cake image">
+        <!-- Replace the src with a local image in your project folder: ./images/chocolate-cake.jpg -->
+        <img src="https://images.unsplash.com/photo-1546069901-eacef0df6022?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=1f5d2e2c7b7f8ed8e2a6b9b6e2b3c4d5" alt="Chocolate Cake"/>
+      </div>
+      <div class="title">Chocolate Cake</div>
+      <div class="meta" style="margin-top:6px">
+        <div class="badge">Prep: <strong id="prepTime">45</strong> mins</div>
+        <div class="badge">Serves: <strong>6</strong></div>
+      </div>
+      <div style="width:100%; margin-top:12px; font-size:0.92rem; color:var(--muted); text-align:center">A moist, tender chocolate cake perfect for celebrations — simple steps, big smiles.</div>
+    </div>
+
+    <div class="content">
+      <div class="section" style="display:flex; align-items:center; justify-content:space-between">
+        <div>
+          <div class="small">Recipe by <strong>HomeCook</strong></div>
+          <h2 style="margin:6px 0">Quick & delightful</h2>
+        </div>
+        <div class="controls">
+          <button id="toggleIngredients" class="btn-outline">Show Ingredients</button>
+          <button id="toggleSteps" class="btn-outline">Show Steps</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="small" style="display:flex; gap:8px; align-items:center">
+          <div>Progress</div>
+          <div class="timer" aria-hidden="true">
+            <div class="small">Timer:</div>
+            <div class="clock" id="clock">00:00</div>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress" aria-hidden>
+            <i id="progressBar"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ingredients (collapsible) -->
+      <div class="section">
+        <h3 style="display:flex; align-items:center; gap:10px; justify-content:space-between">
+          <span>Ingredients</span>
+        </h3>
+        <div id="ingredientsPanel" class="collapsible" style="max-height:0; opacity:0">
+          <div class="ingredients" id="ingredientsList">
+            <div class="ingredient">2 cups all-purpose flour</div>
+            <div class="ingredient">1 3/4 cups sugar</div>
+            <div class="ingredient">3/4 cup cocoa powder</div>
+            <div class="ingredient">1 1/2 tsp baking powder</div>
+            <div class="ingredient">1 1/2 tsp baking soda</div>
+            <div class="ingredient">1 tsp salt</div>
+            <div class="ingredient">2 large eggs</div>
+            <div class="ingredient">1 cup milk</div>
+            <div class="ingredient">1/2 cup vegetable oil</div>
+            <div class="ingredient">2 tsp vanilla extract</div>
+            <div class="ingredient">1 cup hot water</div>
+            <div class="ingredient">Optional: chocolate chips</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Steps (collapsible) -->
+      <div class="section">
+        <h3 style="display:flex; align-items:center; gap:10px; justify-content:space-between">
+          <span>Steps</span>
+          <div>
+            <button id="startCooking" class="btn-accent">Start Cooking</button>
+            <button id="printBtn" class="btn-outline">Print</button>
+          </div>
+        </h3>
+
+        <div id="stepsPanel" class="collapsible" style="max-height:0; opacity:0">
+          <div class="steps" id="stepsList">
+            <div class="step" data-step-index="0"><div class="num">1</div><div><strong>Preheat</strong> the oven to 350°F (175°C). Grease and flour two 9-inch pans.</div></div>
+            <div class="step" data-step-index="1"><div class="num">2</div><div><strong>Mix dry</strong> ingredients (flour, sugar, cocoa, baking powder, baking soda, salt) in a bowl.</div></div>
+            <div class="step" data-step-index="2"><div class="num">3</div><div><strong>Add wet</strong> ingredients (eggs, milk, oil, vanilla) and beat until smooth.</div></div>
+            <div class="step" data-step-index="3"><div class="num">4</div><div><strong>Stir</strong> in hot water (batter will be thin). Fold in chocolate chips if using.</div></div>
+            <div class="step" data-step-index="4"><div class="num">5</div><div><strong>Bake</strong> 30-33 minutes or until toothpick comes out clean. Cool and frost as desired.</div></div>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:12px; align-items:center">
+            <button id="prevStep" class="btn-outline">Prev</button>
+            <button id="nextStep" class="btn-accent">Next</button>
+            <div class="small" id="currentStepLabel">Step 0 of 5</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:8px"></div>
+
+      <div class="small" style="color:var(--muted)">Tip: hover ingredients to highlight them. Use the buttons to reveal sections and follow steps. Try the print button for a print-friendly version.</div>
+    </div>
+  </div>
+
+  <script>
+    // Elements
+    const toggleIngredients = document.getElementById('toggleIngredients');
+    const ingredientsPanel = document.getElementById('ingredientsPanel');
+    const toggleSteps = document.getElementById('toggleSteps');
+    const stepsPanel = document.getElementById('stepsPanel');
+    const startCooking = document.getElementById('startCooking');
+    const steps = Array.from(document.querySelectorAll('.step'));
+    const progressBar = document.getElementById('progressBar');
+    const currentStepLabel = document.getElementById('currentStepLabel');
+    const nextStepBtn = document.getElementById('nextStep');
+    const prevStepBtn = document.getElementById('prevStep');
+    const prepTimeEl = document.getElementById('prepTime');
+    const clockEl = document.getElementById('clock');
+    const printBtn = document.getElementById('printBtn');
+
+    let stepsOpen = false;
+    let ingredientsOpen = false;
+    let currentStep = -1; // -1 means not started
+    const totalSteps = steps.length;
+
+    // Helpers: collapse toggle with max-height trick
+    function setCollapsed(panel, open){
+      if(open){
+        panel.style.maxHeight = panel.scrollHeight + 'px';
+        panel.style.opacity = 1;
+      } else {
+        panel.style.maxHeight = '0px';
+        panel.style.opacity = 0;
+      }
+    }
+
+    toggleIngredients.addEventListener('click', (e)=>{
+      ingredientsOpen = !ingredientsOpen;
+      setCollapsed(ingredientsPanel, ingredientsOpen);
+      toggleIngredients.textContent = ingredientsOpen ? 'Hide Ingredients' : 'Show Ingredients';
+    });
+
+    toggleSteps.addEventListener('click', (e)=>{
+      stepsOpen = !stepsOpen;
+      setCollapsed(stepsPanel, stepsOpen);
+      toggleSteps.textContent = stepsOpen ? 'Hide Steps' : 'Show Steps';
+    });
+
+    // Step controls
+    function highlightStep(index){
+      steps.forEach((s,i)=> s.classList.toggle('active', i===index));
+      if(index >= 0){
+        currentStepLabel.textContent = `Step ${index+1} of ${totalSteps}`;
+      } else {
+        currentStepLabel.textContent = `Step 0 of ${totalSteps}`;
+      }
+      // update progress
+      const pct = index < 0 ? 0 : Math.round(((index+1)/totalSteps)*100);
+      progressBar.style.width = pct + '%';
+    }
+
+    // Next/Prev
+    nextStepBtn.addEventListener('click', ()=>{
+      if(currentStep < totalSteps-1){
+        currentStep++;
+        highlightStep(currentStep);
+      }
+    });
+    prevStepBtn.addEventListener('click', ()=>{
+      if(currentStep > 0){
+        currentStep--;
+        highlightStep(currentStep);
+      } else if(currentStep===0){
+        currentStep = -1; highlightStep(currentStep);
+      }
+    });
+
+    // Start cooking
+    let timerInterval = null;
+    let remainingSeconds = parseInt(prepTimeEl.textContent, 10) * 60; // bonus timer in seconds
+    function formatTime(s){
+      const m = Math.floor(s/60).toString().padStart(2,'0');
+      const sec = (s%60).toString().padStart(2,'0');
+      return `${m}:${sec}`;
+    }
+    clockEl.textContent = formatTime(remainingSeconds);
+
+    startCooking.addEventListener('click', ()=>{
+      // open steps if closed
+      if(!stepsOpen){ stepsOpen = true; setCollapsed(stepsPanel,true); toggleSteps.textContent = 'Hide Steps'; }
+      // set first step
+      currentStep = 0; highlightStep(currentStep);
+
+      // start timer if not already
+      if(timerInterval) return;
+      timerInterval = setInterval(()=>{
+        if(remainingSeconds>0){
+          remainingSeconds--;
+          clockEl.textContent = formatTime(remainingSeconds);
+        } else {
+          clearInterval(timerInterval); timerInterval = null; clockEl.textContent = 'Done';
+        }
+      }, 1000);
+    });
+
+    // Printing
+    printBtn.addEventListener('click', ()=> window.print());
+
+    // Keyboard accessibility: left/right to step
+    document.addEventListener('keydown', (e)=>{
+      if(['ArrowRight','PageDown'].includes(e.key)) nextStepBtn.click();
+      if(['ArrowLeft','PageUp'].includes(e.key)) prevStepBtn.click();
+    });
+
+    // On load, ensure collapsed states
+    setCollapsed(ingredientsPanel,false);
+    setCollapsed(stepsPanel,false);
+
+    // Micro interaction: animate progress bar width changes smoothly using inline style
+    // Also resize progress on window changes
+    window.addEventListener('resize', ()=>{ if(ingredientsOpen) setCollapsed(ingredientsPanel,true); if(stepsOpen) setCollapsed(stepsPanel,true); });
+
+    // Hover accessibility: also allow clicking an ingredient to toggle a check
+    document.getElementById('ingredientsList').addEventListener('click', (e)=>{
+      const target = e.target.closest('.ingredient');
+      if(!target) return;
+      target.classList.toggle('checked');
+      if(target.classList.contains('checked')){
+        target.style.textDecoration='line-through'; target.style.opacity=0.75;
+      } else { target.style.textDecoration='none'; target.style.opacity=1 }
+    });
+
+    // Initialize label
+    highlightStep(-1);
+
+  </script>
+</body>
+</html>
